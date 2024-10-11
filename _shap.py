@@ -1,12 +1,10 @@
-""" Package, shap值计算相关的类和函数 """
+""" This package is for calculating SHAP values """
 
+from __future__ import annotations
 import os
-# import numpy as np
 import pandas as pd
 from auto_shap.auto_shap import generate_shap_values
 import skops.io as sio
-# import h5py
-# from ml_main import print_time
 
 
 def cal_shap_rf(path_skops: os.PathLike, data: pd.DataFrame, cpu=4):

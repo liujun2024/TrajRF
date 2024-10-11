@@ -1,18 +1,16 @@
+""" This package is for processing *.nc files of ERA5 """
+
 from __future__ import annotations
 import os
 import time
-import h5py
 import traceback
 import xarray as xr
 import pandas as pd
 import numpy as np
 import geopandas as gpd
 from shapely.geometry import mapping
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-from PyQt6.QtCore import QObject, QThread, pyqtSignal, QCoreApplication
-# import _cal as cal
-
-# import _config as cfg
+from concurrent.futures import ThreadPoolExecutor
+from PyQt6.QtCore import QThread, pyqtSignal
 import _gkd as gkd
 import _hdf5 as hdf5
 
@@ -1179,26 +1177,4 @@ def stat_era5_with_levels_by_region(dir_data: os.PathLike, data_shp: gpd.GeoData
 
 
 if __name__ == '__main__':
-    dir_land = "E:\\bigdata\\era5_netcdf\\site,era5_land"
-    dir_single = "E:\\bigdata\\era5_netcdf\\site,era5_single_levels"
-    dir_pressure = ""
-    # dir_pressure = "E:\\bigdata\\era5_netcdf\\site,era5_pressure_levels"
-
-    list_land = ['d2m', 'skt', 'sp', 'ssrd', 'strd', 't2m', 'tp', 'u10', 'v10']
-    list_single = ['blh', 'u100', 'v100']
-    list_pressure = []
-
-    t0 = time.time()
-    df = mean_sites2city(
-        dir_land=dir_land,
-        dir_single=dir_single,
-        dir_pressure=dir_pressure,
-        # list_land=list_land,
-        # list_single=list_single,
-        # list_pressure=list_pressure,
-        list_site=['1001A', '1003A'],
-        time_resolution='D',
-    )
-
-    t1 = time.time()
-    print(t1 - t0)
+    pass

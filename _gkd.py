@@ -30,9 +30,6 @@ class SiteInfo:
             self.path_site_list = path_site_list
         else:
             self.path_site_list = 'NewSiteList.csv'
-        #     # self.path_site_list = os.path.join(os.getcwd(), "china_sites_hdf5", "NewSiteList.csv")
-        #     # self.path_site_list = "E:\\bigdata\\gkd\\china_sites_hdf5\\NewSiteList.csv"
-        #     self.path_site_list = cfg.path_site_list
 
         self.df_info = pd.read_csv(self.path_site_list, engine="c", low_memory=False, encoding="gbk")
 
@@ -40,26 +37,19 @@ class SiteInfo:
         list_code_all = self.df_info.loc[:, "监测点编码"].to_numpy()
         list_coordinate = self.df_info.loc[:, ["纬度", "经度"]].to_numpy()
         self.dict_code2coordinate = dict(zip(list_code_all, list_coordinate))
-        # print('self.dict_code2coordinate:\n', self.dict_code2coordinate)
 
         # 监测点编码与站点名称对应 {'1001A': '万寿西宫'}
         list_code_name = self.df_info.loc[:, "监测点名称"].to_numpy().tolist()
         self.dict_code2name = dict(zip(list_code_all, list_code_name))
-        # print('self.dict_code2name:\n', self.dict_code2name)
 
         # 监测点编码与省级行政区对应 {'1001A': '北京市', '1047A': '河北省'}，注意：直辖市名称会同时出现在省级行政区和地级行政区
         list_code_province = self.df_info.loc[:, "省级行政区"].to_numpy().tolist()
         self.dict_code2province = dict(zip(list_code_all, list_code_province))
-        # print('self.dict_code2province:\n', self.dict_code2province)
 
         # 监测点编码与地级行政区对应 {'1001A': '北京市', '1047A': '邯郸市'}
         # list_code_city = self.df_info.loc[:, '地级行政区'].to_numpy().tolist()
         self.list_city_china = self.df_info.loc[:, "地级行政区"].to_numpy().tolist()
         self.dict_code2city = dict(zip(list_code_all, self.list_city_china))
-        # print('self.dict_code2city:\n', self.dict_code2city)
-
-        # 省级行政区与站点列表对应 {'北京市': ['1001A', '1002A', '1003A', ...], '河北省':['1028A', '1029A', '1030A', ...]}
-        # self.dict_province2code = dict([[i, j.loc[:, '监测点编码'].to_numpy()] for i, j in self.df_info.groupby(self.df_info['省级行政区'])])
 
         # 地级行政区与所有站点列表对应 {'北京市': ['1001A', '1002A', '1003A', ...]}
         self.dict_city2code = self.df_info.groupby(self.list_city_china).apply(lambda x: x.loc[:, "监测点编码"].to_numpy()).to_dict()
@@ -68,17 +58,12 @@ class SiteInfo:
         list_code_background = self.df_info.loc[:, "对照点"].to_numpy()
         list_code_background = [True if i == "Y" else False for i in list_code_background]
         self.dict_code2background = dict(zip(list_code_all, list_code_background))
-        # print('self.dict_code2background:', self.dict_code2background)
-
-        # 地级行政区与非对照站点列表对应
-        # self.dict_city2non_background = {key: [i for i in self.dict_city2code[key] if i not in self.dict_code2background[key]] for key in self.dict_city2code.keys()}
 
         # 全国所有城市列表去重
         self.list_city_china = sorted(set(self.list_city_china), key=self.list_city_china.index)
 
         # 全国所有站点
         self.list_code_china = list(chain(*[self.dict_city2code[i] for i in self.list_city_china]))
-        # print(self.list_code_china)
 
         # 全国所有省份，省市名对应
         self.list_province_china = self.df_info.loc[:, "省级行政区"].to_numpy()  # 有重复
@@ -112,7 +97,6 @@ class SiteInfo:
             "鹤壁市", "新乡市", "焦作市", "濮阳市",
         ]
         self.list_code_2p26 = np.hstack([self.dict_city2code[i] for i in self.list_city_2p26])
-        # print('self.list_code_2p26:\n', self.list_code_2p26)
 
         # 珠三角（与环境状况公报一致，共9个城市）
         self.list_city_prd = [

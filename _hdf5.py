@@ -1,25 +1,11 @@
-import traceback
-import typing
-import pandas as pd
-import numpy as np
-import h5py
-import os
-import re
-import time
-from collections import Counter
-from decimal import Decimal, ROUND_HALF_UP
-from itertools import chain
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-# from PyQt6.QtCore import QObject, QThread, pyqtSignal, QCoreApplication
-# from functools import partial
-# from PyQt6.QtWidgets import QApplication
-# from pprint import pprint
-# from pyexcelerate import Workbook
+""" This package is for reading and writing hdf5 files """
 
+import os
+import h5py
+import numpy as np
+import pandas as pd
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 import _era5 as era5
-# import _config as cfg
-# import _cal as cal
-# import _plot_html as plot_html
 
 
 def get_dt_in_hdf(path_hdf: str):

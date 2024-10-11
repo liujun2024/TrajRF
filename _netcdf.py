@@ -1,9 +1,7 @@
-""" ERA5的netcdf数据读写相关的函数api """
+""" This package is for reading *.nc files of ERA5 """
 
-import os
 import pandas as pd
 import xarray as xr
-import _config as cfg
 
 
 def read_era5_without_levels_by_coord(list_files: str, coord: pd.DataFrame):

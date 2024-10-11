@@ -1,20 +1,15 @@
-""" 随机森林相关的类和函数 """
+""" This package is for traning and testing Random Forest Regression model """
 
 from __future__ import annotations
-
 import math
 import numpy as np
 import pandas as pd
 from zipfile import ZIP_LZMA
-# from sklearnex import patch_sklearn
-# patch_sklearn()
-
 from sklearn import metrics
-import sklearn.model_selection as optimizers
 from sklearn.ensemble import RandomForestRegressor
+import sklearn.model_selection as optimizers
 import skops.io as sio
-import config
-from ml_h5 import lc2hdf
+from _hdf5 import lc2hdf
 
 
 def create_rfr(dict_param: dict, cpu=1, **kwargs):
@@ -99,7 +94,7 @@ def score_rfr(dict_param: dict, x_train: pd.DataFrame, y_train: pd.Series, cv=10
         raise ValueError('dict_param包含的参数不全！')
 
     if cpu == 0:
-        cpu = min((math.ceil(dict_param['n_estimators'] / 5), config.max_cpu))
+        cpu = min((math.ceil(dict_param['n_estimators'] / 5), 8))
 
     # 建立随机森林回归模型
     model_rfr = create_rfr(dict_param=dict_param, cpu=cpu, **kwargs)
@@ -450,7 +445,7 @@ def train_rfr_lc(init_params: dict | None, data: pd.DataFrame, path_skops: str, 
 
     """ 保存调参数据至hdf5文件 """
     print('学习曲线保存...', end=' ')
-    lc2hdf(path_hdf5=path_hdf5, dict_all_params=dict_all_params, dict_best_param=dict_best_param, location=config.loc_lc)
+    lc2hdf(path_hdf5=path_hdf5, dict_all_params=dict_all_params, dict_best_param=dict_best_param, location='LearningCurve/')
     print('完成！')
 
 

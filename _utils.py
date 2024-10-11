@@ -1,28 +1,16 @@
+""" This package contains some useful functions """
+ 
 from __future__ import annotations
-from typing import List, Tuple, Dict, Union, Sequence, Iterable
-import os
+from typing import Tuple
 import time
-# import json
-# import requests
 import numpy as np
-import pandas as pd
-import h5py
-# import pyproj
+import geopandas as gpd
 from pyproj import Geod
 from pathlib import Path
-from numpy.lib.stride_tricks import as_strided
-# import shapely
-# from shapely.geometry import MultiLineString
-from shapely import get_coordinates, within, points, polygons
-from shapely.geometry import LineString, MultiLineString, Point, Polygon
-# from geopy.distance import great_circle, geodesic
 from sklearn.neighbors import BallTree
-# from ml_io import read_config
-import geopandas as gpd
-# from shapely.geometry import Point, Polygon
-# from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-# from scipy.spatial import KDTree
-# import pygeos
+from numpy.lib.stride_tricks import as_strided
+from shapely import get_coordinates, within, points, polygons
+from shapely.geometry import LineString, MultiLineString, Polygon
 
 
 def geodistance(latlon1: Tuple[float, float], latlon2: Tuple[float, float]):
@@ -211,40 +199,6 @@ def create_grid_polygons(array2d_lat, array2d_lon):
     return array2d_polygons
 
 
-# def countPointInPolygon(line: LineString, polygon: Polygon):
-#     """ 统计LineString中有多少个点位于Polygon内部 
-
-#         line: shapely LineString，一条线
-#         polygon: shapely Polygon，一个多变形
-
-#     2024-08-31 v1
-#     """
-
-#     return sum(polygon.contains(point) for point in [Point(coord) for coord in line.coords])
-
-
-# def countPointInPolygon(line: pygeos.geometry, polygon: pygeos.geometry):
-#     """ 统计linestring中有多少个点位于polygon内部 
-
-#         line_geos: pygeos LINESTRING，一条线
-#         polygon: pygeos POLYGON，一个多变形
-
-#     2024-09-02 v2 用pygeos库替换shapely库
-#     """
-
-#     # 提取坐标
-#     coords = pygeos.get_coordinates(line)
-
-#     # 转换为points
-#     points = pygeos.points(coords)
-
-#     # 计算有多少点位于多边形内
-#     points_in_polygon = pygeos.within(points, polygon).sum()
-
-#     # 返回数据
-#     return points_in_polygon
-
-
 def countPointInPolygon(line: LineString, polygon: Polygon):
     """ 统计linestring中有多少个点位于polygon内部 
 
@@ -383,105 +337,6 @@ def wpscf(path_shp: str | Path, name: str, threshold: float, resolution: float =
     return gdf_pscf
 
 
-# def wcwt(path_shp: str | Path, name: str, resolution: float = 1.0):
-#     """ 计算CWT和WCWT值
-
-#         path_shp: 包含后向轨迹线的shp文件路径
-#         name: 浓度列名
-
-#     2024-09-02 v1
-#     """
-
-#     # 读取shp文件
-#     gdf_lines = gpd.read_file(path_shp, engine='pyogrio')
-
-#     # 替换浓度列的-9999为nan
-#     gdf_lines[name] = gdf_lines[name].replace(-9999, np.nan)
-
-#     # 合并所有LineString到单一的MultiLineString
-#     combined = MultiLineString(gdf_lines.geometry.tolist())
-
-#     # 计算边界坐标
-#     lon_west, lat_south, lon_east, lat_north = combined.bounds
-
-#     # 生成经纬度数组
-#     arr1d_lon = np.arange(lon_west, lon_east, resolution)
-#     arr1d_lat = np.arange(lat_north, lat_south, -resolution)
-
-#     # 生成2维网格经纬度
-#     array2d_lon_m, array2d_lat_m = np.meshgrid(arr1d_lon, arr1d_lat)
-
-#     # 生成2维网格多边形
-#     array2d_polygons = create_grid_polygons(array2d_lat_m, array2d_lon_m)
-#     print('shape:', array2d_polygons.shape)
-
-#     # 将gdflines转换为pygeos对象
-#     lines_geos = pygeos.from_shapely(gdf_lines.geometry)
-
-#     # 数据存入字典
-#     dict_result = {}
-
-#     # ID写入字典
-#     dict_result['ID'] = np.arange(1, array2d_polygons.size + 1)
-
-#     list_var = ['Nij', 'CWT', 'WCWT']
-#     for i in list_var:
-#         dict_result[i] = []
-
-#     # 遍历多边形
-#     for polygon in array2d_polygons.flatten():
-
-#         # 将polygon转换为pygeos对象
-#         polygon_geos = pygeos.from_shapely(polygon)
-
-#         # 取交集
-#         bool_intersect = pygeos.intersects(lines_geos, polygon_geos)
-        
-#         # 计算有多少条轨迹经过该多边形，Nij
-#         Nij = bool_intersect.sum()
-#         if Nij == 0:
-#             for i in list_var:
-#                 dict_result[i].append(np.nan)
-#             continue
-
-#         # 取出相交的线
-#         lines_intersect = lines_geos[bool_intersect]
-
-#         # 计算有多少点位于多边形内
-#         arr1d_points_num = np.array([countPointInPolygon(line, polygon_geos) for line in lines_intersect])
-
-#         # 如果和为0
-#         if np.sum(arr1d_points_num) == 0:
-#             dict_result['Nij'].append(np.nan)
-#             dict_result['CWT'].append(np.nan)
-#             dict_result['WCWT'].append(np.nan)
-#             continue
-
-#         # 计算浓度与停留时间的乘积
-#         arr1d_conc_time = gdf_lines[bool_intersect][name].values * arr1d_points_num
-
-#         # 计算CWT值
-#         CWTij = np.nansum(arr1d_conc_time) / np.sum(arr1d_points_num)
-
-#         # 计算WPSCF值
-#         WCWTij = CWTij * weight(Nij)
-
-#         # 将PSCF值和WPSCF值存入列表
-#         dict_result['Nij'].append(Nij)
-#         dict_result['CWT'].append(CWTij)
-#         dict_result['WCWT'].append(WCWTij)
-
-#     # 将数据存入GeoDataFrame
-#     gdf_cwt = gpd.GeoDataFrame(
-#         data=dict_result, 
-#         geometry=array2d_polygons.flatten(),
-#         crs='EPSG:4326',
-#         )
-    
-#     # 返回数据
-#     return gdf_cwt
-
-
 def wcwt(path_shp: str | Path, name: str, resolution: float = 1.0, extent: tuple[float, float, float, float] = None, path_csv: str | Path = None):
     """ 计算CWT和WCWT值
 
@@ -600,170 +455,6 @@ def wcwt(path_shp: str | Path, name: str, resolution: float = 1.0, extent: tuple
     return gdf_cwt
 
 
-""" 后面的函数待优化/删除 """
-def get_nearest_gkd_coordinates(lat: float, lon: float, dict_code2coordinate, radius):
-    """ 获取距离目标坐标点A小于radius km的国控站点的代码、坐标和距离
-
-        lat：纬度；
-        lon：经度；
-        dict_code2coordinate： 字典，key=站点代码，value=(latitude, longitude)；
-        radius：搜索半径，单位km；
-
-        return: {'1001A': {'coord': [纬度, 经度], 'dist': 距离},
-                 '1002A': {'coord': [纬度, 经度], 'dist': 距离},
-                 ...
-                }
-
-    2022-12-30    v2
-
-    待删除，使用NearestCoords代替
-    """
-
-    # t0 = time.time()
-    """ 准备国控站点经纬度数组array2d_coord，第1列为纬度，第2列为经度 """
-    list_code = [i for i in dict_code2coordinate.keys()]
-    array2d_coord = np.array([dict_code2coordinate[i] for i in list_code])
-    # print('array2d_coord:', array2d_coord)
-
-    """ 筛选国控点中距离坐标点A经纬度相差小于1°的坐标数组 """
-    # 将所有国控点坐标与坐标A的经纬度相减，
-    # array2d_subtract中第1列为纬度相减的绝对值，第2列为经度相减的绝对值
-    array2d_subtract = np.abs(array2d_coord - np.array([lat, lon]))
-    # print('array2d_subtract:', array2d_subtract)
-
-    # 符合条件的索引（纬度相差1°，距离约111km，这里用radius/100扩大筛选范围；60°纬线经度相差1°，距离约55km）
-    index_ = np.where((array2d_subtract[:, 0] <= radius/100) & (array2d_subtract[:, 1] <= radius/50))
-
-    # 符合条件的站点坐标
-    array2d_coord = array2d_coord[index_]
-
-    # 符合条件的站点代码
-    array1d_code = [list_code[i] for i in index_[0]]
-    # print('array1d_code:', array1d_code)
-    if not array1d_code:
-        return {}
-
-    # t1 = time.time()
-
-    """ 计算距离 """
-    array1d_lat1 = array2d_coord[..., 0]
-    array1d_lon1 = array2d_coord[..., 1]
-
-    # 准备目标坐标点A的经纬度数组
-    array1d_lat2 = np.ones(shape=array1d_lat1.shape) * lat
-    array1d_lon2 = np.ones(shape=array1d_lat1.shape) * lon
-
-    # 计算坐标点A与每个国控站点的距离
-    array1d_distance = geodistances(array1d_lat1=array1d_lat1,
-                                          array1d_lon1=array1d_lon1,
-                                          array1d_lat2=array1d_lat2,
-                                          array1d_lon2=array1d_lon2,
-                                          )
-    # print('array1d_distance:', array1d_distance)
-
-    # 筛选半径radius范围内的坐标索引
-    index_lessthan_radius = np.where(np.array(array1d_distance) <= radius)[0]
-    # print('index_lessthan_radius:', index_lessthan_radius)
-
-    # 准备返回数据
-    dict_result = {}
-    for i in index_lessthan_radius:
-        code = array1d_code[i]
-        coord = array2d_coord[i]
-        dist = array1d_distance[i]
-        dict_result[code] = {'coord': coord, 'dist': dist}
-
-    return dict_result
-
-
-def read_gkd_sites_vars_dt(dir_h5: os.PathLike, sites: list, dt: pd.Timestamp, vars: list):
-    """ 读取国控点hdf5数据中多个站点多个物种单个时间点的数据均值 
-    
-        dir_h5: str, hdf5文件所在目录
-        sites: list, 站点代码列表
-        dt: pd.Timestamp, 时间点
-        vars: list, 物种列表，如：['PM2.5', 'PM10', 'SO2', 'NO2', 'O3', 'CO']
-
-        return: list
-
-    单进程多线程
-    2024-08-02 v1
-    """
-
-    # 线程池初始化
-    pool = ThreadPoolExecutor(max_workers=len(vars))
-
-    # 准备参数
-    args_ = [(os.path.join(dir_h5, f'{var}.h5'), sites, dt) for var in vars]
-
-    # 提交任务
-    list_result = list(pool.map(read_gkd_sites_var_dt, *zip(*args_)))
-
-    # 提取结果
-    # dict_result = dict(zip(vars, list_result))
-    # list_result = [i for i in list_result]
-
-    # 返回数据
-    return list_result
-
-
-def read_gkd_sites_var_dt(path_h5: os.PathLike, sites: list, dt: pd.Timestamp):
-    """ 读取国控点hdf5数据中多个站点单物种单个时间点的数据均值
-
-        path_h5: str, hdf5文件路径
-        sites: list, 站点代码列表
-        dt: pd.Timestamp, 时间点
-
-        return: float
-
-    单进程
-    2024-08-02 v1
-    """
-
-    # 打开hdf5文件
-    f = h5py.File(name=path_h5, mode="r")
-
-    # 数据集
-    dset_ = f[str(dt.year)]
-
-    # 时间索引
-    index_ = dset_.attrs['datetime']
-
-    # hdf5文件中的columns
-    columns_ = dset_.attrs['columns']
-
-    # dt在index_中的位置索引
-    index_dt = np.where(index_ == dt.timestamp())[0]
-    
-    # 判断index_dt是否为空
-    if len(index_dt) == 0:
-        f.close()
-        return np.nan
-    
-    # print('index_dt:\n', np.where(index_ == dt.timestamp())[0])
-    # index_dt = np.where(index_ == dt.timestamp())[0][0]
-
-    # 站点代码列表在columns中的位置索引
-    index_column = np.where(np.isin(columns_, sites))[0]
-
-    # 取值
-    array1d_data = dset_[index_dt[0], index_column]
-
-    # 判断是否为nan
-    if np.isnan(array1d_data).all():
-        f.close()
-        return np.nan
-    
-    # 计算均值
-    mean_ = np.nanmean(array1d_data)
-
-    # 关闭hdf5文件
-    f.close()
-
-    # 返回数据
-    return mean_
-
-
 if __name__ == '__main__':
 
     # 示例
@@ -787,6 +478,4 @@ if __name__ == '__main__':
 
     t2 = time.time()
 
-
-    # print('距离：', dist1, dist2)
     print('time:', t1 - t0, t2-t1)

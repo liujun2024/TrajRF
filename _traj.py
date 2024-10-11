@@ -1,21 +1,15 @@
+""" This package is for calling HYSPLIT to generate trajectories """
+
 from __future__ import annotations
 import os
 import re
 from pathlib import Path
-# import time
 import h5py
 import numpy as np
 import pandas as pd
-# import xarray as xr
 from subprocess import call, DEVNULL
 from decimal import Decimal, ROUND_HALF_UP
 from concurrent.futures import ProcessPoolExecutor
-# from ml_io import read_config
-# from ml_geo import SiteInfo, geo_distance_batch
-# from ml_h5 import get_gkd_3d
-# import geopandas as gpd
-# from shapely.geometry import LineString
-# import _gkd as gkd
 
 
 class RunHYSPLIT:
