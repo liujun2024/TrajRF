@@ -1,4 +1,4 @@
-""" get site data from the HDF5 file and save it as a CSV file. """
+""" Get hourly meteorological data for specific sites from the HDF5 file and save it as a CSV file """
 
 from __future__ import annotations
 from pathlib import Path
