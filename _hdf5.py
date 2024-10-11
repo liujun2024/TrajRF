@@ -263,5 +263,532 @@ def df2h5_era5(data_: pd.DataFrame, path_hdf5: str, short_name: str, long_name: 
     f.close()
 
 
+def data2hdf(file: h5py.File, location: str, data: pd.DataFrame | dict, attrs=None, **kwargs):
+    """ # 将数据存入hdf5文件
+
+        file: h5py.File()
+        location: 保存在hdf5文件中的相对位置
+        data: 待写入的数据
+        attr: dict | None 待写入的属性
+
+    无返回值
+    2023-06-25 v1
+    单进程
+    """
+
+    # 判断data数据类型
+    if attrs is None:
+        attrs = dict()
+
+    if isinstance(data, pd.DataFrame) or isinstance(data, pd.Series):
+        data_np = data.to_numpy()
+
+        # if data.index.name == 'datetime':
+        #     index_ = data.index.to_numpy().astype(np.uint64) / 1E9
+        #     # attrs['datetime'] = (data.index.to_numpy().astype(np.uint64) * 1E-9).astype(np.int)
+        # else:
+        #     # attrs['index'] = data.index.to_numpy().astype(np.int)
+        #     index_ = data.index.to_numpy().astype(np.int)
+
+        if isinstance(data, pd.DataFrame):
+            attrs['columns'] = data.columns.to_numpy()
+        else:
+            attrs['name'] = data.name
+
+    elif isinstance(data, np.ndarray):
+        data_np = data
+
+    else:
+        raise ValueError('未识别的Index')
+
+    # # 写入index
+    # location_index = location.split('/')[0] + '/' + data.index.name
+    # print(location_index)
+    # file.create_dataset(name=location_index, data=index_, shuffle='T', compression='gzip', compression_opts=5)
+
+    # 写入数组数据
+    file.create_dataset(name=location, data=data_np, shuffle='T', compression='gzip', compression_opts=5)
+
+    # 写入属性数据
+    for key in attrs.keys():
+        file[location].attrs[key] = attrs[key]
+
+
+def index2hdf(file: h5py.File, location: str, index):
+    """ # 将索引数据存入hdf5文件
+
+        file: h5py.File()
+        location: 保存在hdf5文件中的相对位置
+        index: 待写入的数据
+
+    无返回值
+    2023-06-25 v1
+    2023-07-19 v1.1 适配非时间索引数据
+    单进程
+    """
+
+    # 判断data数据类型，如果是时间索引pd.DatetimeIndex，则将之转换为时间戳（s）
+    if isinstance(index, pd.DatetimeIndex):
+        index_ = index.to_numpy().astype(np.uint64) * 1E-9
+        # name = 'datetime'
+
+    else:
+        index_ = index.to_numpy()
+        # name = 'index'
+
+    if location not in file:
+        # 写入index
+        file.create_dataset(name=location, data=index_, shuffle='T', compression='gzip', compression_opts=5)
+        file[location].attrs['name'] = index.name
+
+    else:
+        raise KeyError('已存在的dataset：%s' % location)
+
+
+def train2hdf(path_hdf5: str, data: pd.DataFrame):
+    """ 将训练数据存入hdf5文件
+
+        path_hdf5: os.PathLise，hdf5文件目标路径
+        data: pd.DataFrame，待训练数据，含有datetime索引，最后一列为因变量，其它列为自变量
+
+    无返回值
+    2023-06-20 v1
+    2023-07-19 v1.1 适配非时间索引数据
+    单进程
+    """
+
+    # 新建h5文件，存在则替换
+    # f = h5py.File(name=path_hdf5, mode='w')
+    f = h5py.File(name=path_hdf5, mode='a')
+
+    # 写入数据
+    data2hdf(file=f, location='Raw/Train', data=data)
+    # if location not in f:
+    #     data2hdf(file=f, location=location, data=data)
+
+    # 写入index
+    index2hdf(file=f, location='Index/Train', index=data.index)
+
+    # if data.index.name == 'datetime':
+    #     index2hdf(file=f, location='Index/Train', index=data.index)
+
+    # 关闭文件
+    f.close()
+
+
+def hdf2train(path_hdf5: str):
+    """ 读取训练数据
+
+        path_hdf5: os.PathLise，hdf5文件路径
+        location: 保存在hdf5文件中的相对位置
+
+        return: pd.DataFrame，待训练的数据
+
+    2023-06-21 v1
+    2023-07-19 v1.1 适配非时间索引数据
+    单进程
+    """
+
+    # 打开h5文件
+    f = h5py.File(name=path_hdf5, mode='r')
+
+    # 读取数据
+    data = f['Raw/Train']
+
+    # 自变量、因变量表头
+    columns = data.attrs['columns']
+
+    # index
+    index = f['Index/Train']
+
+    # index_name
+    index_name = index.attrs['name']
+
+    # 将index（时间戳）转换为时间
+    if index_name == 'datetime':
+        index = pd.to_datetime(index, unit='s')
+
+    # 创建pd.DataFrame
+    df_data = pd.DataFrame(data=data, index=index, columns=columns)
+
+    # 设置索引列列名
+    df_data.index.name = index_name
+
+    # 关闭文件
+    f.close()
+
+    # 返回数据
+    return df_data
+
+
+def test2hdf(path_hdf5: str, data: pd.DataFrame):
+    """ 将用于验证的数据存入hdf5文件
+
+        path_hdf5: os.PathLise，hdf5文件目标路径
+        data: pd.DataFrame，验证数据，含有datetime索引，最后一列为因变量，其它列为自变量
+
+    无返回值
+    2023-06-20 v1
+    2023-07-19 v1.1 适配非时间索引数据
+    单进程
+    """
+
+    # 打开h5文件
+    f = h5py.File(name=path_hdf5, mode='a')
+
+    # 写入数据
+    data2hdf(file=f, location='Raw/Test', data=data)
+    # if location not in f:
+    #     data2hdf(file=f, location=location, data=data)
+
+    # 写入index
+    index2hdf(file=f, location='Index/Test', index=data.index)
+
+    # if data.index.name == 'datetime':
+    #     index2hdf(file=f, location='Index/Test', index=data.index)
+
+    # 关闭文件
+    f.close()
+
+
+def hdf2test(path_hdf5: str):
+    """ 读取验证数据
+
+        path_hdf5: os.PathLise，hdf5文件路径
+        location: 保存在hdf5文件中的相对位置
+
+        return: pd.DataFrame，待训练的数据
+
+    2023-06-21 v1
+    2023-07-19 v1.1 适配非时间索引数据
+
+    单进程
+    """
+
+    # 打开h5文件
+    f = h5py.File(name=path_hdf5, mode='r')
+
+    # 判断数据是否存在
+    if 'Raw/Test' not in f:
+        f.close()
+        return None
+
+    # 读取数据
+    data = f['Raw/Test']
+
+    # 自变量、因变量表头
+    columns = data.attrs['columns']
+
+    # index
+    index = f['Index/Test']
+
+    # index_name
+    index_name = index.attrs['name']
+
+    # 将index（时间戳）转换为时间
+    if index_name == 'datetime':
+        index = pd.to_datetime(index, unit='s')
+
+    # 创建pd.DataFrame
+    df_data = pd.DataFrame(data=data, index=index, columns=columns)
+
+    # 设置索引列列名
+    df_data.index.name = index_name
+
+    # 关闭文件
+    f.close()
+
+    # 返回数据
+    return df_data
+
+
+def lc2hdf(path_hdf5: str, dict_all_params: dict, dict_best_param: dict, location: str):
+    """ 将学习曲线调参过程的数据存入hdf5文件
+
+        path_hdf5: os.PathLise，hdf5文件目标路径
+        dict_all_params: dict，过程中每一步的参数的组成的字典，如：
+                {
+                'n_estimators': pd.Series（index为参数值，data为对应的模型表现）,
+                'max_depth': 同上,
+                'min_samples_split': 同上,
+                'min_samples_leaf': 同上,
+                'max_features': 同上,
+                'max_samples': 同上,
+                 }
+
+        dict_best_param: dict，6个参数的最优值，如：
+                {
+                'n_estimators': 59,
+                'max_depth': 5,
+                'min_samples_split': 2,
+                'min_samples_leaf': 2,
+                'max_features': 0.5,
+                'max_samples': 0.7,
+                 }
+
+        location: 保存在hdf5文件中的相对位置
+
+    无返回值
+    2023-06-20 v1
+    单进程
+    """
+
+    # 打开h5文件
+    f = h5py.File(name=path_hdf5, mode='a')
+
+    # 如果数据已存在，则删除
+    if location in f:
+        del f[location]
+
+    # 写入数据
+    for p in dict_all_params.keys():
+        # hdf5文件中的位置
+        location_p = location + p
+
+        # 属性数据
+        dict_attrs_p = {
+                'index': dict_all_params[p].index,
+                # 'data': dict_all_params[p].to_numpy(),
+                'name': p,
+                'optimal': dict_best_param[p],
+        }
+
+        # 写入数据
+        data2hdf(file=f, location=location_p, data=dict_all_params[p].to_numpy(), attrs=dict_attrs_p)
+
+    # 保存完关闭文件
+    f.close()
+
+
+def hdf2lc(path_hdf5: str, location: str):
+    """ 读取模型训练学习曲线结果，与lc2hdf函数互逆
+
+        path_hdf5: os.PathLise，hdf5文件路径
+        location: 保存在hdf5文件中的相对位置
+
+        return: tuple，(dict，dict) 分别为dict_all_params和dict_best_param
+
+    2023-06-21 v1
+    单进程
+    """
+
+    # 打开h5文件
+    f = h5py.File(name=path_hdf5, mode='r')
+
+    # 参数列表
+    list_lc = ['n_estimators', 'max_depth', 'min_samples_split', 'min_samples_leaf', 'max_features', 'max_samples']
+
+    # 用于存储所有参数
+    dict_all_params = dict()
+
+    # 用于存储最优参数
+    dict_optimal_param = dict()
+
+    # 读取
+    for p in list_lc:
+        # 位置
+        location_p = location + p
+
+        # 所有参数
+        series_p = pd.Series(data=f[location_p], index=f[location_p].attrs['index'], name=f[location_p].attrs['name'])
+        dict_all_params[p] = series_p
+
+        # 最优参数
+        dict_optimal_param[p] = f[location_p].attrs['optimal']
+
+    # 关闭文件
+    f.close()
+
+    # 返回数据
+    return dict_all_params, dict_optimal_param
+
+
+def predict2hdf(path_hdf5: str, dict_predict: dict, location: str):
+    """ 将评估结果存入hdf5文件
+
+        path_hdf5: os.PathLise，hdf5文件目标路径
+        dict_predict: dict，评估结果
+            {
+            'r2': float,
+            'rmse': float,
+            'data': pd.Series,
+            }
+
+        location: 保存在hdf5文件中的相对位置
+
+    无返回值
+    2023-06-21
+    单进程
+
+    """
+
+    # 打开h5文件
+    f = h5py.File(name=path_hdf5, mode='a')
+
+    # 如果数据已存在，则删除
+    if location in f:
+        del f[location]
+
+    # 属性数据
+    dict_attrs = {
+            'r2': dict_predict['r2'],
+            'rmse': dict_predict['rmse'],
+    }
+
+    # 写入数据
+    data2hdf(file=f, location=location, data=dict_predict['data'], attrs=dict_attrs)
+
+    # 关闭文件
+    f.close()
+
+
+def hdf2predict(path_hdf5: str, location: str):
+    """ 读取预测数据，与predict2hdf函数互逆
+
+        path_hdf5: os.PathLise，hdf5文件路径
+        location: 保存在hdf5文件中的相对位置
+
+        return: dict，预测结果
+            {
+            'r2': float,
+            'rmse': float,
+            'data': pd.Series,
+            }
+
+    2023-06-25 v1
+    单进程
+    """
+
+    # 打开h5文件
+    f = h5py.File(name=path_hdf5, mode='r')
+
+    # 判断数据是否存在
+    if location not in f:
+        f.close()
+        return None
+
+    # 读取数据
+    data = f[location]
+
+    # index位置
+    location_index = location.replace('Predict', 'Index')
+
+    # index
+    index = f[location_index]
+
+    # index_name
+    index_name = index.attrs['name']
+
+    # index
+    if index_name == 'datetime':
+        index = pd.to_datetime(index, unit='s')
+
+    # 生成pd.Series
+    series_data = pd.Series(
+        data=data,
+        index=index,
+        name=index_name
+    )
+
+    # 准备返回数据
+    dict_data = {
+            'r2': data.attrs['r2'],
+            'rmse': data.attrs['rmse'],
+            'data': series_data,
+    }
+
+    # 关闭文件
+    f.close()
+
+    # 返回数据
+    return dict_data
+
+
+def shap2hdf(dict_shap: dict, path_hdf5: os.PathLike, location: str):
+    """ 将由cal_shap_xx计算的结果存入hdf5文件
+
+        dict_shap: dict, 如：
+            {'shap_values_df': pd.DataFrame,
+             'shap_expected_value': float,
+             'global_shap_df': pd.Series,
+            }
+
+        path_hdf5: os.PathLike，保存路径
+        location: str，保存在hdf5文件中的相对路径
+
+    无返回值
+    2023-06-19 v1
+    单进程
+    """
+
+    # 打开hdf5文件
+    f = h5py.File(name=path_hdf5, mode='a')
+
+    # 判断是否已经存在，是则删除
+    if location in f:
+        del f[location]
+
+    # 属性数据
+    dict_attrs = {
+            'shap_expected_value': dict_shap['shap_expected_value'],
+    }
+
+    # 写入数据
+    data2hdf(file=f, location=location, data=dict_shap['shap_values_df'], attrs=dict_attrs)
+
+    # 关闭文件
+    f.close()
+
+
+def hdf2shap(path_hdf5: str, location: str):
+    """ 从hdf5文件中读取shapley value
+
+        dict_shap: dict, 如：
+            {'shap_values_df': pd.DataFrame,
+             'shap_expected_value': float,
+             'global_shap_df': pd.Series,
+            }
+
+        path_hdf5: os.PathLike，保存路径
+        location: str，保存在hdf5文件中的相对路径
+
+        return: dict, {
+            'shap_values_df': pd.DataFrame，auto_shap.generate_shap_values计算的shap_values_df
+            'shap_expected_value':  float, shapley value的期望值
+        }
+
+    2023-06-19 v1
+    单进程
+    """
+
+    # 打开hdf5文件
+    f = h5py.File(name=path_hdf5, mode='r')
+
+    # 读取数据
+    data = f[location]
+
+    # 生成pd.DataFrame
+    df_data = pd.DataFrame(
+        data=data,
+        index=pd.to_datetime(f['Index/Train'], unit='s'),
+        # index=pd.to_datetime(f['Index/Training'], unit='s'),
+        # index=pd.to_datetime(data.attrs['datetime'], unit='s'),
+        columns=data.attrs['columns'],
+    )
+    df_data.index.name = 'datetime'
+
+    # 准备返回数据
+    dict_data = {
+            'shap_values_df': df_data,
+            'shap_expected_value': data.attrs['shap_expected_value'],
+    }
+
+    # 关闭文件
+    f.close()
+
+    # 返回数据
+    return dict_data
+
+
 if __name__ == '__main__':
     pass

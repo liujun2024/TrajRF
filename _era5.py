@@ -12,7 +12,7 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from PyQt6.QtCore import QObject, QThread, pyqtSignal, QCoreApplication
 # import _cal as cal
 
-import _config as cfg
+# import _config as cfg
 import _gkd as gkd
 import _hdf5 as hdf5
 
