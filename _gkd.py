@@ -1,20 +1,9 @@
 """ This package is for reading the site information saved in 'NewSiteList.csv' """
 
 from __future__ import annotations
-# import os
-# import re
-# import time
-# import h5py
-# import traceback
 import numpy as np
 import pandas as pd
 from itertools import chain
-# from functools import partial
-# from collections import Counter
-# from pyexcelerate import Workbook
-# from decimal import Decimal, ROUND_HALF_UP
-# from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-# from PyQt6.QtCore import QThread, pyqtSignal, QCoreApplication
 
 
 class SiteInfo:
