@@ -27,7 +27,9 @@ Merge local pollutant concentrations, meteorological data, and pollutant concent
 > Instructions for running above scripts can be found within the file
 
 ## 如何引用 How to cite
-文章审稿中 The article is under review
+Liu Jun, Chen Meiru, Chu Biwu, Chen Tianzeng, Ma Qingxin, Wang Yonghong, Zhang Peng, Li Hao, Zhao Bin, Xie Rongfu, Huang Qing, Wang Shuxiao, and He Hong. Assessing the Significance of Regional Transport in Ozone Pollution through Machine Learning: A Case Study of Hainan Island, ACS ES&T Air, 2025.
+https://doi.org/10.1021/acsestair.4c00297
+
 
 ## 问题反馈 Feedback
 进入项目的Issues[反馈](https://github.com/liujun2024/Traj-RF/issues)
